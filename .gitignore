@@ -1,4 +1,16 @@
-.env
+# Virtual Environment
 venv/
+.venv/
+env/
+
+# Secrets and Local Configurations
+.env
+.env.*
+
+# Python Cache
 __pycache__/
 *.pyc
+
+# Operating System Files
+.DS_Store
+Thumbs.db
