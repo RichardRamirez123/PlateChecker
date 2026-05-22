@@ -25,17 +25,56 @@ left_col, right_col = st.columns([1, 1.2], gap="large")
 # --- LEFT COLUMN: CONTROL & INPUT PANEL ---
 with left_col:
     st.subheader("📸 Input Interface")
-    uploaded_file = st.file_uploader("Upload your meal photo...", type=["jpg", "jpeg", "png"])
+    st.caption("Select your collection tool to stage a plate layout:")
     
-    if uploaded_file is not None:
-        image = Image.open(uploaded_file)
-        st.image(image, caption="Target Meal Layout", width=450)
+    # Initialize persistent layout trackers in Session State
+    if "input_source" not in st.session_state:
+        st.session_state.input_source = None  # Tracks 'upload' or 'camera'
+        
+    # Render side-by-side action buttons
+    btn_col1, btn_col2 = st.columns(2)
+    
+    with btn_col1:
+        if st.button("📁 Upload Image", use_container_width=True):
+            st.session_state.input_source = "upload"
+            st.rerun()
+            
+    with btn_col2:
+        if st.button("📷 Open Camera", use_container_width=True, type="primary"):
+            st.session_state.input_source = "camera"
+            st.rerun()
+            
+    st.markdown("---")
+    
+    # Initialize our file buffer variable globally inside this execution frame
+    uploaded_file = None
+    
+    # Dynamic input rendering paths
+    if st.session_state.input_source == "upload":
+        uploaded_file = st.file_uploader("Select a meal photo from your device storage...", type=["jpg", "jpeg", "png"])
+        
+        if uploaded_file is not None:
+            # Create a clean local visual image frame preview container
+            st.image(uploaded_file, caption="Target Meal Layout", width=450)
+            
+    elif st.session_state.input_source == "camera":
+        if st.button("❌ Close Camera Feed", type="secondary"):
+            st.session_state.input_source = None
+            st.rerun()
+        else:
+            uploaded_file = st.camera_input("Position your plate in frame and snap!")
+            
+    else:
+        st.info("💡 Tap an intake source button above to initialize your image parser framework.")
 
 # --- RIGHT COLUMN: DYNAMIC AI RUNTIME PANEL ---
 with right_col:
     st.subheader("🎯 Real-Time Analysis Grid")
     
     if uploaded_file is not None:
+        # 💡 FIX: Safely convert the raw file buffer into an image object here!
+        image = Image.open(uploaded_file)
+        
         with st.spinner("Analyzing plate composition using semantic vision..."):
             detected_components = analyze_plate_with_vlm(image)
             
@@ -90,7 +129,6 @@ with right_col:
                 st.plotly_chart(fig, width="stretch")
                 
                 # 🚀 LOGGING MECHANISM: Check if this exact file analysis has already been logged
-                # This unique key prevent Streamlit from creating duplicate rows upon page reruns
                 current_file_key = f"{uploaded_file.name}_{uploaded_file.size}"
                 
                 if "last_logged_file" not in st.session_state or st.session_state.last_logged_file != current_file_key:
