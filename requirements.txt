@@ -1,6 +1,6 @@
 streamlit
-transformers
-torch
+google-genai
+python-dotenv
 requests
 Pillow
 plotly
