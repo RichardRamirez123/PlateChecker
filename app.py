@@ -14,7 +14,7 @@ uploaded_file = st.file_uploader("Upload your meal photo...", type=["jpg", "jpeg
 
 if uploaded_file is not None:
     image = Image.open(uploaded_file)
-    st.image(image, caption="Target Meal Layout", use_container_width=True)
+    st.image(image, caption="Target Meal Layout", width="stretch")
     
     with st.spinner("Analyzing plate composition using semantic vision..."):
         detected_components = analyze_plate_with_vlm(image)
@@ -26,7 +26,16 @@ if uploaded_file is not None:
     total_protein = 0
     total_fat = 0
     
-    if detected_components:
+    # Ensure the VLM actually returned a list (if it's None, the API call completely failed)
+    if detected_components is None:
+        st.error("Configuration Error: Could not connect to the AI service. Please verify API key!")
+    
+    # The API worked perfectly, but no food items were found in the image
+    elif len(detected_components) == 0:
+        st.warning("No food detected on the plate. Try uploading a clearer picture of your meal!")
+
+    # Food was detected! Run the nutrition math and build the charts
+    else:
         for item in detected_components:
             macros = get_nutrition_data(item.name)
             
@@ -44,8 +53,27 @@ if uploaded_file is not None:
             
             st.write(f"✅ **{item.name.title()}** (~{item.estimated_weight_grams}g)")
             st.caption(f"↳ *Estimated Contributions:* {int(item_cals)} kcal | Carbs: {round(item_carbs, 1)}g | Protein: {round(item_protein, 1)}g")
-    else:
-        st.error("Could not complete analysis. Check that your terminal environment variable GEMINI_API_KEY is active!")
+
+    # if detected_components:
+    #     for item in detected_components:
+    #         macros = get_nutrition_data(item.name)
+            
+    #         # Scale macros based on estimated weight (assuming database defaults to 100g base)
+    #         scale = item.estimated_weight_grams / 100.0
+    #         item_cals = macros['Calories'] * scale
+    #         item_carbs = macros['Carbs'] * scale
+    #         item_protein = macros['Protein'] * scale
+    #         item_fat = macros['Fat'] * scale
+            
+    #         total_calories += item_cals
+    #         total_carbs += item_carbs
+    #         total_protein += item_protein
+    #         total_fat += item_fat
+            
+    #         st.write(f"✅ **{item.name.title()}** (~{item.estimated_weight_grams}g)")
+    #         st.caption(f"↳ *Estimated Contributions:* {int(item_cals)} kcal | Carbs: {round(item_carbs, 1)}g | Protein: {round(item_protein, 1)}g")
+    # else:
+    #     st.error("Could not complete analysis. Check that your terminal environment variable GEMINI_API_KEY is active!")
 
     if total_calories > 0:
         st.markdown("---")
